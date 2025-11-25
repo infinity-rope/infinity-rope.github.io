@@ -1,0 +1,2462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>∞-RoPE: Action-Controllable Infinite Video Generation</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22white%22/><text y=%22.9em%22 font-size=%2290%22 fill=%22%23f39c12%22>∞</text></svg>">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Slab:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+    <style>
+        /* Paper title styling */
+        .paper-title {
+            font-size: 1.7rem;
+            font-weight: 500;
+            color: var(--white, #fff);
+            margin: 0.5rem 0;
+            font-family: 'Roboto Slab', serif;
+            text-align: center;
+        }
+        
+        .paper-title .infinity {
+            color: var(--accent-color);
+            font-weight: 800;
+        }
+        
+        @media (max-width: 768px) {
+            .paper-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+    <div class="container">
+            <header>
+                <h1><span class="infinity">∞</span>-RoPE: Action-Controllable Infinite Video Generation Emerges From Autoregressive Self-Rollout</h1>
+                <div class="divider"></div>
+                <p class="subtitle">
+                    Hidir Yesiltepe<sup>1</sup>, Tuna Han Salih Meral<sup>1</sup>, Adil Kaan Akan<sup>2</sup>, Kaan Oktay<sup>2</sup>, Pinar Yanardag<sup>1</sup><br>
+                    <sup>1</sup>Virginia Tech &nbsp; <sup>2</sup>fal
+                </p>
+                <div class="button-container">
+                    <a href="#" class="rounded-button" target="_blank">
+                        <i class="ai ai-arxiv" style="font-size: 20px;"></i>
+                        arXiv
+                    </a>
+                    <a href="#" class="rounded-button" target="_blank">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                        </svg>
+                        Code
+                    </a>
+                </div>
+            </header>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Teaser Section -->
+        <section class="section-container teaser-section" style="margin-top: 0;">
+            <h2 style="margin-top: 0.5rem;">Teaser</h2>
+            <div class="divider"></div>
+            <div class="section-description">
+                <p>∞-RoPE demonstrates three core capabilities: Infinite-length video generation enabled by Block-Relativistic RoPE, fine-grained action-control through KV Flush, and cinematic multi-cut scene composition via RoPE Cut.</p>
+            </div>
+            
+            <div class="video-grid compact-grid">
+                <div class="video-container compact-container">
+                    <h3>Ultra-long Video Generation</h3>
+                    <div class="video-wrapper">
+                        <video loop muted playsinline autoplay controls>
+                            <source src="videos/teaser/ultra_long.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <p class="video-description">Generate videos of unlimited length beyond the base model's temporal horizon</p>
+                </div>
+                
+                <div class="video-container compact-container">
+                    <h3>Dynamic Scene Cuts</h3>
+                    <div class="video-wrapper">
+                        <video loop muted playsinline autoplay controls>
+                            <source src="videos/teaser/scene_cut.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <p class="video-description">Cinematic multi-cut transitions within a single autoregressive rollout</p>
+                </div>
+                
+                <div class="video-container compact-container">
+                    <h3>Action Control</h3>
+                    <div class="video-wrapper">
+                        <video loop muted playsinline autoplay controls>
+                            <source src="videos/teaser/action_control.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <p class="video-description">Dynamic prompt changes with instant responsiveness and smooth transitions</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Motivations Section -->
+        <section class="section-container ablation-section">
+            <h2 style="margin-top: 1.5rem; position: relative; text-align: center;">
+                Motivations
+                <div class="video-controls" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%);">
+                    <button class="control-btn restart-btn" data-action="restart" data-section="motivations" title="Restart">↻</button>
+                    <button class="control-btn play-btn" data-action="play" data-section="motivations" title="Play">▶</button>
+                    <button class="control-btn stop-btn" data-action="stop" data-section="motivations" title="Stop">⏹</button>
+                    <span class="control-separator">|</span>
+                    <button class="speed-btn" data-speed="1" data-section="motivations">1x</button>
+                    <button class="speed-btn" data-speed="2" data-section="motivations">2x</button>
+                    <button class="speed-btn" data-speed="4" data-section="motivations">4x</button>
+                </div>
+            </h2>
+            <div class="divider"></div>
+            <div class="section-description">
+                <p>In contrast to these methods, which primarily extend temporal horizons via new training procedures, distillation strategies, or large-scale infrastructure,
+                    <span>&infin;</span>-RoPE explores what already distilled models can achieve by reparameterizing temporal RoPE and KV caching at inference time, and can be applied in a plug-and-play fashion on top of existing Self-Forcing variants to enable effectively infinite-horizon, controllable video generation.
+                  </p>
+            </div>
+            
+            <div class="video-grid">
+                <div class="video-container">
+                    <h3>Self-Forcing</h3>
+                    <div class="video-wrapper">
+                        <video controls loop muted playsinline autoplay>
+                            <source src="videos/motivations/self_forcing_1.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <p class="video-description">Self-Forcing baseline method</p>
+                </div>
+                
+                <div class="video-container">
+                    <h3>Self-Forcing + Block-Relativistic RoPE</h3>
+                    <div class="video-wrapper">
+                        <video controls loop muted playsinline autoplay>
+                            <source src="videos/motivations/block_relativistic_rope_1.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <p class="video-description">Self-Forcing with Block-Relativistic RoPE</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Qualitative Results Section -->
+        <section class="section-container qualitative-section">
+            <h2 style="margin-top: 1.5rem;">Qualitative Results</h2>
+            <div class="divider"></div>
+            <div class="section-description">
+                <p>Qualitative results demonstrating the capabilities of ∞-RoPE.</p>
+            </div>
+            
+            <div class="qualitative-subsection">
+                <h3 class="subsection-title">
+                    Ultra Long Video Generation
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="ultra-long" title="Restart">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="ultra-long" title="Play">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="ultra-long" title="Stop">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="ultra-long">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="ultra-long">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="ultra-long">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Showcasing ultra-long autoregressive generations that sustain high fidelity over extended durations.</p>
+                
+                <div class="video-grid" style="grid-template-columns: repeat(2, 1fr); grid-template-rows: 1fr;">
+                    <div class="video-container">
+                        <h3>Ultra Long Video 1</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/rabbit/1V49RCuD3sjS-xEixWfLh_A%20dynamic%20hip-hop%20dance%20scene%20in%20a%20vibrant%20urban%20style%2C%20featuring%20an%20Asian%20girl%20in%20a%20bright%20yellow%20T-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Ultra Long Video 2</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/Zcm3rdjzJqV3jnwoe6yrs_A%20handheld%20camera%20captures%20a%20dog%20running%20through%20a%20park%20with%20a%20joyful%20exploration%2C%20the%20camera%20follow-0%20(1).mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="qualitative-subsection">
+                <h3 class="subsection-title">
+                    Single Subject Action Control
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="single-subject">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="single-subject">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="single-subject">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="single-subject">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="single-subject">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="single-subject">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Fine-grained action control demonstrations for individual subjects.</p>
+                
+                <div class="video-grid multi-action-grid">
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/zjXvt80GfW7R3hyjSQ8GI_A%20dynamic%20hip-hop%20dance%20scene%20in%20a%20vibrant%20urban%20style%2C%20featuring%20an%20Asian%20girl%20in%20a%20bright%20yellow%20T-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/QFIegwv9Q1PhX0Xr9B1JX_A%20model%20named%20__Aria__%20is%20alone%20on%20the%20stage%2C%20standing%20at%20the%20glossy%20head%20of%20a%20runway.%20Aria%20wears%20a%20-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/_8peJ0Ef04AhRlXC7WIda_An%20astronaut%20wearing%20a%20sleek%20white%20space%20suit%20and%20reflective%20helmet%20visor%20stands%20inside%20a%20clean%20futu-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/penguin/GZFIDcEYt_H829905rSgb_Aya%2C%20a%20young%20woman%20with%20straight%20dark%20hair%2C%20glasses%2C%20and%20a%20navy%20blue%20hoodie%2C%20sits%20quietly%20at%20a%20woode-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/panda/H2_qi0-WU61el7jXh3S8b_Evelyn%2C%20a%20gentle%20elderly%20woman%20with%20silver%20hair%20tied%20in%20a%20low%20bun%2C%20kind%20wrinkles%20around%20her%20eyes%2C%20an-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/koala/NS6ythycke6h6iY486p5h_Javier%2C%20a%20fit%20man%20with%20short%20black%20hair%20and%20an%20athletic%20build%2C%20wearing%20a%20grey%20tank%20top%20and%20black%20run-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/koala/AOM_Q6cGsgpggOmzf-1-s_R-12%2C%20a%20small%20cartoon%20robot%20with%20a%20round%20metal%20body%20and%20glowing%20blue%20eyes%2C%20stands%20inside%20a%20dimly%20lit-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/panda/Pt0WaBbEctQLyVMaJsVMo_Axel%2C%20a%20rocker%20with%20long%20blonde%20hair%20wearing%20a%20black%20leather%20vest%20and%20playing%20a%20red%20electric%20guitar%2C-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/monkey/8kSWq2wryubqT1sRrw8JL_Maya%2C%20a%20fit%20woman%20with%20braided%20black%20hair%20wearing%20a%20black%20sports%20bra%20and%20leggings%2C%20stands%20tall%20on%20a%20-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="qualitative-subsection multi-action-subsection">
+                <h3 class="subsection-title">
+                    Multiple Subject Action Control
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="multiple-subject">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="multiple-subject">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="multiple-subject">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="multiple-subject">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="multiple-subject">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="multiple-subject">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Coordinated multi-character sequences showcasing simultaneous action conditioning, synchronized motion planning, and subject-specific temporal control.</p>
+                
+                <div class="video-grid multi-action-grid">
+                    <div class="video-container">
+                        <h3>Action Transition (x4)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/fd73KQ94Y42xFC0s51ugO_A%20man%20named%20Jeff%2C%20tall%20with%20tousled%20brown%20hair%2C%20rolled%20sleeves%2C%20and%20a%20relaxed%20grin%2C%20stands%20beside%20Su-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x5)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/monkey/PnYuKgxvZefqXctWzDxto_Donald%2C%20tall%20with%20short%20gray%20hair%2C%20light%20stubble%2C%20and%20a%20checkered%20flannel%20shirt%2C%20stands%20near%20Carolin-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/penguin/XVsbznvmnBXpk8dh349HX_Interior%20night%20in%20a%20warm%20Chinese%20family%20dining%20room%20with%20a%20wooden%20table%20and%20a%20birthday%20cake%20on%20it%20to-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/elephant/xG76aMMcAiMSaxmUL-U23_Coach%20Miller%2C%20a%20bald%20man%20with%20a%20whistle%20around%20his%20neck%20wearing%20a%20tracksuit%2C%20stands%20in%20the%20center%20of-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/7uqpuwoJp-eGcpVomvYw0_Emily%2C%20a%20woman%20with%20wavy%20blonde%20hair%20and%20a%20green%20blouse%2C%20sits%20at%20a%20dinner%20table%20opposite%20Tom%2C%20a%20man%20-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x6)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/o_TMugwZ_pQ6CmYR7kv7p_cat.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="qualitative-subsection">
+                <h3 class="subsection-title">
+                    Action Control + Character Introduction
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="character-intro">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="character-intro">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="character-intro">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="character-intro">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="character-intro">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="character-intro">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Demonstrations of action control combined with character introduction capabilities.</p>
+                
+                <div class="video-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr;">
+                    <div class="video-container">
+                        <h3>Action Transition (x6) + Character Introduction (x3)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/JvL_21hvSEye8H1q3tJzP_Static_shot%2C_static_camera._Jack%2C_a_man_with_a_short_buzzcut_wearing_a_black_leather_jacket_and_tact-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x4) + Character Introduction (x3)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/rabbit/Omb-TpQGDkQNhBvIBi42f_Static_shot%2C_static_camera._Mia%2C_a_little_girl_in_a_light_pink_tulle_dress%2C_stands_in_a_forest_clear-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Action Transition (x3) + Character Introduction (x2)</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/elephant/1_fu57UuRPWUB_s6eu7yE_On_an_empty_stage_under_a_lone_ghost_light%2C_a_solo_ballet_dancer_in_a_simple_leotard_rehearses%2C_musc-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="qualitative-subsection">
+                <h3 class="subsection-title">
+                    Action Control + Object Introduction
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="object-intro">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="object-intro">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="object-intro">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="object-intro">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="object-intro">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="object-intro">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Demonstrations of action control combined with object introduction capabilities.</p>
+                
+                <div class="video-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr;">
+                    <div class="video-container">
+                        <h3>Video 1</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/OOEOAUl2DT7y9ex-gcRFL_Static_shot%2C_static_camera._Sakura%2C_a_serene_model_with_long_pink_hair_in_a_simple_white_gown%2C_stand-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 2</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/8h2_A54yh1pk3U1GXoDq8_Static_shot%2C_static_camera._Tony_Stark%2C_wearing_his_red_and_gold_armor%2C_walks_through_a_war-torn%2C_cr-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 3</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/tiger/DqdUuGUxUkL8ZR2kPCAZ8_In_a_serene_garden_of_blooming_flowers%2C_a_joyful_Madonna_in_a_flowing_pastel_embroidered_robe_holds_-4.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="qualitative-subsection">
+                <h3 class="subsection-title">
+                    Long Video Generation (Cache Size ≤ <span style="white-space: nowrap;">f<sub>limit</sub></span>)
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="bounded">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="bounded">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="bounded">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="bounded">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="bounded">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="bounded">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Demonstrations of long video generation when cache size is at or below the limit parameter.</p>
+                
+                <div class="video-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);">
+                    <div class="video-container">
+                        <h3>Video 1</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/panda/b8Osp6aamI685hMa_prTs_A%20cinematic%20film%20shot%20in%2070mm%2C%20capturing%20an%20extreme%20close-up%20of%20a%2024-year-old%20woman's%20eye%20as%20it%20blin-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 2</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/tiger/G6klmHNxoo4VsvhlsyO0J_A%20detailed%20digital%20painting%20in%20the%20style%20of%20a%20realistic%20Japanese%20manga%2C%20capturing%20reflections%20in%20the-0%20(2).mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 3</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/lPEY08mguBIwTY5zfAB3I_ours.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 4</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/penguin/oNPRpMB0f2yDMq_3ySc-g_ours.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 5</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="videos/teaser/ultra_long.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 6</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/rabbit/OzHaVPGmaP7HeHTWLNBxi_ours.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="qualitative-subsection">
+                <h3 class="subsection-title">
+                    Long Video Generation (Cache Size > <span style="white-space: nowrap;">f<sub>limit</sub></span>)
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="unbounded">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="unbounded">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="unbounded">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="unbounded">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="unbounded">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="unbounded">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Demonstrations of long video generation capabilities when cache size exceeds the limit parameter.</p>
+                
+                <div class="video-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);">
+                    <div class="video-container">
+                        <h3>Video 1</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/penguin/VxsgNETqLvc7zNeO4Z8X2_A%20cinematic%20film%20shot%20in%2035mm%20capturing%20a%20dynamic%20step-printing%20scene%20of%20a%20person%20running.%20The%20runne-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 2</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/kxIQNev-ZBAeGu5izBb8r_A%20close-up%203D%20animated%20scene%20of%20a%20short%2C%20fluffy%20monster%20kneeling%20beside%20a%20melting%20red%20candle.%20The%20mo-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 3</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/JpS5kxGkLtiKQ8MdU5W_N_A%20dynamic%20action%20scene%20in%20the%20style%20of%20a%20thrilling%20wildlife%20documentary%2C%20capturing%20a%20dinosaur%20in%20mot-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 4</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/s3czvFV6do93RM2HhNFqj_A%20photorealistic%20closeup%20video%20of%20two%20pirate%20ships%20battling%20each%20other%20as%20they%20sail%20inside%20a%20steamin-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 5</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/XOwdGE8zCsRJ7ETpujpje_A%20stylish%20woman%20named%20Alice%20strolls%20down%20a%20bustling%20Tokyo%20street%2C%20the%20warm%20glow%20of%20neon%20lights%20and%20a-0_new.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Video 6</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/tiger/T4N4EYtoZmvbbAq9i2hrU_A%20vibrant%20anime%20illustration%20in%20a%20thick%20painting%20style%20featuring%20a%20young%20man%20in%20his%2020s%20sitting%20on%20a-0.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3 class="subsection-title">
+                    Dynamic Scene Cut
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="scene-cut">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="scene-cut">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="scene-cut">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="scene-cut">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="scene-cut">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="scene-cut">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description">Demonstrations of dynamic scene transitions and cuts in video generation.</p>
+                
+                <div class="video-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);">
+                    <div class="video-container">
+                        <h3>Harry Potter Trailer</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/tiger/UkAS_GyDvmGBhmStslj70_harry_potter.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Titanic Trailer</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/elephant/ilGSlao4XpLQ8tKQemB8l_titanic.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Game of Thrones Trailer</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/LB7sXrrz9vbNxJKBa2yhB_jon_snow.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>The Shawshank Redemption Trailer</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/5nJRqP-G8eHBhUroS2QHX_shawshank.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Barbie Trailer</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/FtHvW6UMFl0I2t3z7hopH_barbie.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Interstellar Trailer</h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/tiger/GwhFcZpFdgDnNrZyNPPlI_interstaller.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ablations Section -->
+        <section class="section-container ablation-section">
+            <h2 style="margin-top: 1.5rem;">Ablations</h2>
+            <div class="divider"></div>
+            <div class="section-description">
+                <p>Visual demonstrations of ablation studies showing the impact of different components in our method.</p>
+            </div>
+            
+            <div class="ablation-subsection">
+                <h3 class="subsection-title">
+                    Onset Index Ablations (x6)
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="onset-index">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="onset-index">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="onset-index">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="onset-index">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="onset-index">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="onset-index">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description"><b>Ablation study on the effect of the f<sub>0</sub> parameter.</b>
+                    All videos are generated with a KV cache size of 6. The results clearly support the relativistic property of our approach, showing that high-fidelity long-form generation is not bounded by the Temporal RoPE = KV cache size, but on the pretrained model’s natural generation horizon, which is 21 in our case.
+                    </p>
+                
+                <div class="video-grid">
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[f<sub>0</sub>=6]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/tiger/iHl2q-v8YbZMGh7Nm3wJY_6.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[f<sub>0</sub>=9]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/P6z3juAwThcgBnmCGdFi3_9.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[f<sub>0</sub>=12]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/jgm2LCmp88er9pvX06JOv_12.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[f<sub>0</sub>=15]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/panda/fJG5Pm_eqrqhzg6G0I4RU_15.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[f<sub>0</sub>=18]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/O_wk9inr5eXAYpUuEImUD_18.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[f<sub>0</sub>=21]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/FLm55dpOllmrzocyK6DLG_21.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stylish-separator">
+                <span class="separator-dot"></span>
+                <span class="separator-line"></span>
+                <span class="separator-dot"></span>
+            </div>
+            
+            <div class="ablation-subsection">
+                <h3 class="subsection-title">
+                    KV Cache Size Ablations (x6)
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="kv-cache">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="kv-cache">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="kv-cache">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="kv-cache">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="kv-cache">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="kv-cache">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description"><b>Ablation study demonstrating the impact of the KV cache size.</b>
+                    All experiments are conducted with f<sub>0</sub> = 21. The qualitative observations are consistent with the quantitative results reported in Figure&nbsp;7 of the main paper. As the KV cache size increases, the dynamic degree decreases and the preservation of subject identity becomes weaker.
+                    </p>
+                
+                <div class="video-grid">
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[KV Cache=6]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/elephant/QTpntyXK7te-RYHdsAH2W_6.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[KV Cache=9]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/lion/fe1mT9xDuclahfh18PfLu_9.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[KV Cache=12]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/YLToyx-iKmnhqyocG3-rg_12.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+        </div>
+
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[KV Cache=15]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/koala/4Qw6MJT6pMV6uAnQjgL3S_15.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[KV Cache=18]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/8WK4sEB8O92gw3YbLsSCc_18.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+        </div>
+
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[KV Cache=21]</span></h3>
+                        <div class="video-wrapper">
+                    <video controls loop muted playsinline>
+                                <source src="https://v3b.fal.media/files/b/kangaroo/EwlNPL1RJLqHlbcQpr2v-_21.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stylish-separator">
+                <span class="separator-dot"></span>
+                <span class="separator-line"></span>
+                <span class="separator-dot"></span>
+            </div>
+            
+            
+            
+            <div class="ablation-subsection temporal-jump-subsection">
+                <h3 class="subsection-title">
+                    Temporal RoPE Jump Index Ablations (x4)
+                    <div class="video-controls">
+                        <button class="control-btn restart-btn" data-action="restart" data-subsection="temporal-jump">↻</button>
+                        <button class="control-btn play-btn" data-action="play" data-subsection="temporal-jump">▶</button>
+                        <button class="control-btn stop-btn" data-action="stop" data-subsection="temporal-jump">⏹</button>
+                        <span class="control-separator">|</span>
+                        <button class="speed-btn" data-speed="1" data-subsection="temporal-jump">1x</button>
+                        <button class="speed-btn" data-speed="2" data-subsection="temporal-jump">2x</button>
+                        <button class="speed-btn" data-speed="4" data-subsection="temporal-jump">4x</button>
+                    </div>
+                </h3>
+                <p class="subsection-description"><b>Ablation study demonstrating the impact of the temporal RoPE jump index.</b>
+                    As the jump index &Delta; increases, the scene undergoes more drastic changes. When f + &Delta; exceeds the RoPE horizon f<sub>limit</sub>, a scene transition effect appears. A detailed discussion of this effect, along with quantitative results, is provided in the Appendix.
+                    </p>
+                
+                <div class="video-grid">
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[Δ=6]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/elephant/W4OXsAJu8k8D8T0_jlbOS_6.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[Δ=21]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/elephant/U_wUr20XhOHASntDQUHk7_21.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[Δ=45]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/rabbit/vS40vqDJ77Uysx_sa947h_45.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+            </div>
+        </div>
+
+                    <div class="video-container">
+                        <h3>Block-Relativistic RoPE <span class="param">[Δ=90]</span></h3>
+                        <div class="video-wrapper">
+                            <video controls loop muted playsinline autoplay>
+                                <source src="https://v3b.fal.media/files/b/zebra/IK_bg-tUna5qkQMzrIfli_90.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Qualitative Comparison Section -->
+        <section class="section-container comparison-section">
+            <h2 style="position: relative; text-align: center;">
+                Qualitative Comparison
+                <div class="video-controls" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%);">
+                    <button class="control-btn restart-btn" data-action="restart" data-section="qualitative-comparison" title="Restart">↻</button>
+                    <button class="control-btn play-btn" data-action="play" data-section="qualitative-comparison" title="Play">▶</button>
+                    <button class="control-btn stop-btn" data-action="stop" data-section="qualitative-comparison" title="Stop">⏹</button>
+                    <span class="control-separator">|</span>
+                    <button class="speed-btn" data-speed="1" data-section="qualitative-comparison">1x</button>
+                    <button class="speed-btn" data-speed="2" data-section="qualitative-comparison">2x</button>
+                    <button class="speed-btn" data-speed="4" data-section="qualitative-comparison">4x</button>
+                </div>
+            </h2>
+            <div class="divider"></div>
+            <div class="section-description">
+                <p>Comparison of ∞-RoPE with baseline methods across different video durations.</p>
+            </div>
+            
+            <div class="duration-group">
+                <div class="duration-title" id="dynamic-duration-title">5 Seconds</div>
+                <div class="comparison-carousel">
+                    <button class="carousel-button prev" aria-label="Previous comparison">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                        </svg>
+                    </button>
+                    <div class="carousel-container">
+                        <!-- 5 Seconds Grid -->
+                        <div class="comparison-grid active" data-duration="5 Seconds">
+                            <div class="video-container">
+                                <h3>CausVid</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/koala/VdevMsD-g_neTO4u44x8q_causvid.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/koala/Tpifpo_h3-Q9tZHvdQMPO_self_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Pyramidal Flow</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/monkey/bjEOQNZwj-jUOcSZ1nuai_pyramidal_flow.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/rabbit/5lKbvRpAl-xQnJtz4eInt_skyreels.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Rolling Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/FIwow7PT-xjPuqC4b5BRW_rolling_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/zebra/fKGIDzAKkgXq9WNcSv2in_ours.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 60 Seconds Grid -->
+                        <div class="comparison-grid" data-duration="60 Seconds">
+                            <div class="video-container">
+                                <h3>CausVid</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/tiger/To_InFNDTskaAOAV7b26x_causvid.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/panda/PMq3RGfcEb-Iyu7-9zsPk_self_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Pyramidal Flow</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/tiger/LNztoNhyfv4kFSybmnoEN_pyramidal_flow.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/monkey/BHPLDAX99zQ9i0NYnU5dN_skyreels.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Rolling Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/kangaroo/VLmSU6Yx-z8kSLPf7gm0g_rolling_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/rabbit/OzHaVPGmaP7HeHTWLNBxi_ours.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 120 Seconds Grid -->
+                        <div class="comparison-grid" data-duration="120 Seconds">
+                            <div class="video-container">
+                                <h3>CausVid</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/lion/xs2ggtkkxmIWI0BZJgj28_causvid.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/rabbit/s66QCnWMxinTPjy3llE3T_self_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Pyramidal Flow</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/elephant/diidLYhmzJlJefnco6bWD_pyramidal_flow.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/lion/1POGrzTJmRQzqs95VA2aE_skyreels.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Rolling Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/monkey/2t39_Y3emdnGD9qFd6S1p_rolling_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/oNPRpMB0f2yDMq_3ySc-g_ours.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 240 Seconds Grid -->
+                        <div class="comparison-grid" data-duration="240 Seconds">
+                            <div class="video-container">
+                                <h3>CausVid</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/lion/Qoq2jwiaTgblQsek388sD_causvid.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/ms8mCTuRJy1P72PW7TXGk_self_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Pyramidal Flow</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/zebra/bNzIYJr7ZvSZzrEPhvRlG_pyramidal_flow.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/tiger/rW3JmRHtZWPGDHmiuSjRW_skyreels.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>Rolling Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/mqM0PEBXmydio6xGGLM1Y_rolling_forcing.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/zebra/lPEY08mguBIwTY5zfAB3I_ours.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-button next" aria-label="Next comparison">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                        </svg>
+                    </button>
+                    <div class="carousel-indicators"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Control Comparison Section -->
+        <section class="section-container comparison-section">
+            <h2 style="position: relative; text-align: center;">
+                Action Control Comparison
+                <div class="video-controls" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%);">
+                    <button class="control-btn restart-btn" data-action="restart" data-section="action-control-comparison" title="Restart">↻</button>
+                    <button class="control-btn play-btn" data-action="play" data-section="action-control-comparison" title="Play">▶</button>
+                    <button class="control-btn stop-btn" data-action="stop" data-section="action-control-comparison" title="Stop">⏹</button>
+                    <span class="control-separator">|</span>
+                    <button class="speed-btn" data-speed="1" data-section="action-control-comparison">1x</button>
+                    <button class="speed-btn" data-speed="2" data-section="action-control-comparison">2x</button>
+                    <button class="speed-btn" data-speed="4" data-section="action-control-comparison">4x</button>
+                </div>
+            </h2>
+            <div class="divider"></div>
+            <div class="section-description">
+                <p>Comparison of different action control strategies and configurations.</p>
+            </div>
+            
+            <div class="duration-group">
+                <div class="duration-title" id="action-control-duration-title">Comparison 1</div>
+                <div class="comparison-carousel">
+                    <button class="carousel-button prev" aria-label="Previous comparison">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                        </svg>
+                    </button>
+                    <div class="carousel-container">
+                        <!-- Comparison 1 Grid (formerly Comparison 2) -->
+                        <div class="comparison-grid active action-control-grid" data-comparison="Comparison 1">
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/de-d3J2_-bHqASTPkKULt_ballet.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/monkey/-aHGi7R6wkme-Q2RPRLh2_ballet.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>LongLive</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/zebra/ForzhN8ZxfrXtwp2-zpgd_ballet.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/kangaroo/3uQy5fGMfRtfMonmOog38_ballet.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Comparison 2 Grid (formerly Comparison 1) -->
+                        <div class="comparison-grid action-control-grid" data-comparison="Comparison 2">
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/monkey/oXVAbbs0XksqZ25QE6unF_cat.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/fm8CO547yhGZ67D3mR0PV_cat.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>LongLive</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/bgIEYn2JgXMlIhk9y7IDq_cat.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/kangaroo/o_TMugwZ_pQ6CmYR7kv7p_cat.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Comparison 3 Grid -->
+                        <div class="comparison-grid action-control-grid" data-comparison="Comparison 3">
+                            <div class="video-container">
+                                <h3>Self-Forcing</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/panda/vp-AglyHXv2-f-gG2UoKP_model.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>SkyReels-V2</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/1YaBmkpgtE8RlVwLChl85_model.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>LongLive</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/tiger/vxIyAklXHg1q8vf-BdBge_model.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            <div class="video-container">
+                                <h3>∞-RoPE (Ours)</h3>
+                                <div class="video-wrapper">
+                                    <video controls loop muted playsinline autoplay>
+                                        <source src="https://v3b.fal.media/files/b/penguin/n4w6j8JdO783F0BN3yOON_model.mp4" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-button next" aria-label="Next comparison">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                        </svg>
+                    </button>
+                    <div class="carousel-indicators"></div>
+                </div>
+                
+                <!-- Duration System for Comparison 1 -->
+                <div class="duration-system" id="comparison1-duration-system" style="display: none;">
+                    <div class="duration-bar-container">
+                        <div class="duration-segments">
+                            <div class="duration-segment" data-start="0" data-end="10">
+                                <span class="segment-label">0-10s</span>
+                            </div>
+                            <div class="duration-segment" data-start="10" data-end="20">
+                                <span class="segment-label">10-20s</span>
+                            </div>
+                            <div class="duration-segment" data-start="20" data-end="30">
+                                <span class="segment-label">20-30s</span>
+                            </div>
+                            <div class="duration-segment" data-start="30" data-end="40">
+                                <span class="segment-label">30-40s</span>
+                            </div>
+                            <div class="duration-segment" data-start="40" data-end="50">
+                                <span class="segment-label">40-50s</span>
+                            </div>
+                            <div class="duration-segment" data-start="50" data-end="60">
+                                <span class="segment-label">50-60s</span>
+                            </div>
+                        </div>
+                        <div class="duration-progress-bar">
+                            <div class="duration-progress-fill" id="comparison1-progress"></div>
+                        </div>
+                    </div>
+                    <div class="prompt-display" id="comparison1-prompt">Typing intently</div>
+                </div>
+                
+                <!-- Duration System for Comparison 2 -->
+                <div class="duration-system" id="comparison2-duration-system" style="display: none;">
+                    <div class="duration-bar-container">
+                        <div class="duration-segments">
+                            <div class="duration-segment" data-start="0" data-end="10">
+                                <span class="segment-label">0-10s</span>
+                            </div>
+                            <div class="duration-segment" data-start="10" data-end="20">
+                                <span class="segment-label">10-20s</span>
+                            </div>
+                            <div class="duration-segment" data-start="20" data-end="30">
+                                <span class="segment-label">20-30s</span>
+                            </div>
+                            <div class="duration-segment" data-start="30" data-end="40">
+                                <span class="segment-label">30-40s</span>
+                            </div>
+                            <div class="duration-segment" data-start="40" data-end="50">
+                                <span class="segment-label">40-50s</span>
+                            </div>
+                            <div class="duration-segment" data-start="50" data-end="60">
+                                <span class="segment-label">50-60s</span>
+                            </div>
+                        </div>
+                        <div class="duration-progress-bar">
+                            <div class="duration-progress-fill" id="comparison2-progress"></div>
+                        </div>
+                    </div>
+                    <div class="prompt-display" id="comparison2-prompt">Solo rehearsal</div>
+                </div>
+                
+                <!-- Duration System for Comparison 3 -->
+                <div class="duration-system" id="comparison3-duration-system" style="display: none;">
+                    <div class="duration-bar-container">
+                        <div class="duration-segments">
+                            <div class="duration-segment" data-start="0" data-end="10">
+                                <span class="segment-label">0-10s</span>
+                            </div>
+                            <div class="duration-segment" data-start="10" data-end="20">
+                                <span class="segment-label">10-20s</span>
+                            </div>
+                            <div class="duration-segment" data-start="20" data-end="30">
+                                <span class="segment-label">20-30s</span>
+                            </div>
+                            <div class="duration-segment" data-start="30" data-end="40">
+                                <span class="segment-label">30-40s</span>
+                            </div>
+                            <div class="duration-segment" data-start="40" data-end="50">
+                                <span class="segment-label">40-50s</span>
+                            </div>
+                            <div class="duration-segment" data-start="50" data-end="60">
+                                <span class="segment-label">50-60s</span>
+                            </div>
+                        </div>
+                        <div class="duration-progress-bar">
+                            <div class="duration-progress-fill" id="comparison3-progress"></div>
+                        </div>
+                    </div>
+                    <div class="prompt-display" id="comparison3-prompt">Ethereal setup</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Set different playback speeds based on video duration group
+        document.addEventListener('DOMContentLoaded', function() {
+            const durationGroups = document.querySelectorAll('.duration-group');
+            
+            durationGroups.forEach((group, index) => {
+                const videos = group.querySelectorAll('video');
+                let speed = 1.0;
+                
+                // Determine speed based on the duration group
+                const title = group.querySelector('.duration-title').textContent;
+                
+                if (title.includes('5 Seconds')) {
+                    speed = 1.0; // Keep original speed
+                } else if (title.includes('60 Seconds')) {
+                    speed = 2.0; // 2x speed
+                } else if (title.includes('120 Seconds')) {
+                    speed = 3.0; // 3x speed
+                } else if (title.includes('240 Seconds')) {
+                    speed = 4.0; // 4x speed
+                }
+                
+                videos.forEach(video => {
+                    video.playbackRate = speed;
+                });
+            });
+            
+            // Set custom demo videos to 2x speed
+            const customVideos = document.querySelector('.section-container');
+            if (customVideos) {
+                customVideos.querySelectorAll('video').forEach(video => {
+                    video.playbackRate = 2.0;
+                });
+            }
+            
+            // Teaser and Film Strip JavaScript
+            const teaserVideos = document.querySelectorAll('.teaser-section video');
+            const filmStripVideos = document.querySelectorAll('.film-strip video');
+            
+            // Duration badges (skip teaser videos)
+            function formatVideoDuration(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            function attachDurationBadge(wrapper) {
+                const video = wrapper.querySelector('video');
+                if (!video || wrapper.querySelector('.video-duration-badge')) return;
+                
+                const badge = document.createElement('div');
+                badge.className = 'video-duration-badge';
+                badge.textContent = '0:00';
+                wrapper.appendChild(badge);
+                
+                const updateDuration = () => {
+                    if (video.duration && isFinite(video.duration)) {
+                        badge.textContent = formatVideoDuration(video.duration);
+                    }
+                };
+                
+                video.addEventListener('loadedmetadata', updateDuration);
+                updateDuration();
+            }
+            
+            document.querySelectorAll('.video-wrapper').forEach(wrapper => {
+                if (!wrapper.closest('.teaser-section')) {
+                    attachDurationBadge(wrapper);
+                }
+            });
+            
+            // Play all videos in the teaser section
+            teaserVideos.forEach(video => {
+                video.play().catch(error => {
+                    // Auto-play might be blocked by browser policy
+                    console.log("Teaser video auto-play blocked:", error);
+                });
+            });
+            
+            // Play all videos in the film strip
+            filmStripVideos.forEach(video => {
+                video.play().catch(error => {
+                    // Auto-play might be blocked by browser policy
+                    console.log("Video auto-play blocked:", error);
+                });
+            });
+            
+            function resetGridVideos(grid) {
+                if (!grid) return;
+                const videos = grid.querySelectorAll('video');
+                videos.forEach(video => {
+                    try {
+                        if (video.loop) {
+                            video.loop = false;
+                        }
+                        video.currentTime = 0;
+                    } catch (e) {
+                        console.warn('Unable to reset video time', e);
+                    }
+                });
+            }
+            
+            // Pause animation when tab is not visible to save resources
+            document.addEventListener('visibilitychange', function() {
+                const filmStrip = document.querySelector('.film-strip-inner');
+                if (document.hidden) {
+                    if (filmStrip) {
+                        filmStrip.style.animationPlayState = 'paused';
+                    }
+                    teaserVideos.forEach(video => video.pause());
+                    filmStripVideos.forEach(video => video.pause());
+                } else {
+                    if (filmStrip) {
+                        filmStrip.style.animationPlayState = 'running';
+                    }
+                    teaserVideos.forEach(video => video.play().catch(e => {}));
+                    filmStripVideos.forEach(video => video.play().catch(e => {}));
+                }
+            });
+            
+            // Show/hide native video controls on hover
+            document.querySelectorAll('.video-wrapper').forEach(wrapper => {
+                const video = wrapper.querySelector('video');
+                if (!video) return;
+                
+                // Ensure controls attribute is present
+                if (!video.hasAttribute('controls')) {
+                    video.setAttribute('controls', '');
+                }
+                
+                // Hide controls initially
+                video.style.setProperty('--controls-opacity', '0');
+                
+                wrapper.addEventListener('mouseenter', function() {
+                    video.style.setProperty('--controls-opacity', '1');
+                    // Force controls to show
+                    video.controls = true;
+                });
+                
+                wrapper.addEventListener('mouseleave', function() {
+                    video.style.setProperty('--controls-opacity', '0');
+                    // Small delay before hiding to allow interaction
+                    setTimeout(() => {
+                        if (!wrapper.matches(':hover')) {
+                            video.controls = false;
+                            // Re-enable after a moment so they can appear on next hover
+                            setTimeout(() => {
+                                video.controls = true;
+                            }, 100);
+                        }
+                    }, 200);
+                });
+            });
+            
+            // Qualitative Comparison carousel functionality (ONLY for Qualitative Comparison)
+            const qualitativeSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                const h2 = section.querySelector('h2');
+                return h2 && h2.textContent.includes('Qualitative Comparison');
+            });
+            const qualitativeCarousel = qualitativeSection ? qualitativeSection.querySelector('.comparison-carousel') : null;
+            if (qualitativeCarousel) {
+                const container = qualitativeCarousel.querySelector('.carousel-container');
+                const grids = qualitativeCarousel.querySelectorAll('.comparison-grid');
+                const indicatorsContainer = qualitativeCarousel.querySelector('.carousel-indicators');
+                const prevButton = qualitativeCarousel.querySelector('.carousel-button.prev');
+                const nextButton = qualitativeCarousel.querySelector('.carousel-button.next');
+                const durationTitle = document.getElementById('dynamic-duration-title');
+                let qualitativeCurrentIndex = 0;
+                const qualitativeAutoArmed = new Array(grids.length).fill(false);
+                const qualitativeCompletionState = Array.from(grids, () => new Set());
+                
+                // Create indicators
+                grids.forEach((grid, index) => {
+                    const indicator = document.createElement('button');
+                    indicator.className = 'indicator';
+                    if (index === 0) indicator.classList.add('active');
+                    indicator.addEventListener('click', () => qualitativeShowGrid(index));
+                    indicatorsContainer.appendChild(indicator);
+                });
+                
+                const indicators = indicatorsContainer.querySelectorAll('.indicator');
+                
+                function qualitativeShowGrid(index) {
+                    grids.forEach((grid, gridIndex) => {
+                        grid.classList.remove('active');
+                        qualitativeAutoArmed[gridIndex] = false;
+                        qualitativeCompletionState[gridIndex].clear();
+                    });
+                    indicators.forEach(indicator => indicator.classList.remove('active'));
+                    
+                    grids[index].classList.add('active');
+                    indicators[index].classList.add('active');
+                    qualitativeCurrentIndex = index;
+                    qualitativeAutoArmed[index] = true;
+                    qualitativeCompletionState[index].clear();
+                    resetGridVideos(grids[index]);
+                    
+                    // Update duration title
+                    if (durationTitle && grids[index].dataset.duration) {
+                        durationTitle.textContent = grids[index].dataset.duration;
+                    }
+                }
+                
+                grids.forEach((grid, gridIndex) => {
+                    const videos = grid.querySelectorAll('video');
+                    videos.forEach((video, videoIndex) => {
+                        video.loop = false;
+                        video.addEventListener('ended', () => {
+                            if (!grid.classList.contains('active')) return;
+                            if (!qualitativeAutoArmed[gridIndex]) return;
+                            const totalVideos = videos.length;
+                            if (totalVideos === 0) return;
+                            qualitativeCompletionState[gridIndex].add(videoIndex);
+                            if (qualitativeCompletionState[gridIndex].size >= totalVideos) {
+                                qualitativeAutoArmed[gridIndex] = false;
+                                const nextIndex = (gridIndex + 1) % grids.length;
+                                qualitativeShowGrid(nextIndex);
+                            }
+                        });
+                    });
+                });
+                
+                prevButton.addEventListener('click', () => {
+                    const newIndex = (qualitativeCurrentIndex - 1 + grids.length) % grids.length;
+                    qualitativeShowGrid(newIndex);
+                });
+                
+                nextButton.addEventListener('click', () => {
+                    const newIndex = (qualitativeCurrentIndex + 1) % grids.length;
+                    qualitativeShowGrid(newIndex);
+                });
+                
+                qualitativeShowGrid(qualitativeCurrentIndex);
+            }
+            
+            // Action Control Comparison carousel functionality (ONLY for Action Control Comparison)
+            const actionControlSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                const h2 = section.querySelector('h2');
+                return h2 && h2.textContent.includes('Action Control Comparison');
+            });
+            const actionControlCarousel = actionControlSection ? actionControlSection.querySelector('.comparison-carousel') : null;
+            if (actionControlCarousel) {
+                const container = actionControlCarousel.querySelector('.carousel-container');
+                const grids = actionControlCarousel.querySelectorAll('.action-control-grid');
+                const durationGroup = actionControlSection.querySelector('.duration-group');
+                const indicatorsContainer = durationGroup ? durationGroup.querySelector('.carousel-indicators') : null;
+                const prevButton = actionControlCarousel.querySelector('.carousel-button.prev');
+                const nextButton = actionControlCarousel.querySelector('.carousel-button.next');
+                const durationTitle = document.getElementById('action-control-duration-title');
+                let actionControlCurrentIndex = 0;
+                const actionControlAutoArmed = new Array(grids.length).fill(false);
+                
+                // Duration System for Comparison 1
+                const durationSystem1 = document.getElementById('comparison1-duration-system');
+                const progressFill1 = document.getElementById('comparison1-progress');
+                const promptDisplay1 = document.getElementById('comparison1-prompt');
+                
+                const prompts1 = [
+                    { start: 0, end: 10, text: 'Typing intently' },
+                    { start: 10, end: 20, text: 'Rubbing arm' },
+                    { start: 20, end: 30, text: 'Resuming work' },
+                    { start: 30, end: 40, text: 'Gentle murmur' },
+                    { start: 40, end: 50, text: 'Chin scratch' },
+                    { start: 50, end: 60, text: 'Head pat' }
+                ];
+                
+                // Duration System for Comparison 2
+                const durationSystem2 = document.getElementById('comparison2-duration-system');
+                const progressFill2 = document.getElementById('comparison2-progress');
+                const promptDisplay2 = document.getElementById('comparison2-prompt');
+                
+                const prompts2 = [
+                    { start: 0, end: 10, text: 'Solo rehearsal' },
+                    { start: 10, end: 20, text: 'Tracing line' },
+                    { start: 20, end: 30, text: 'Pirouette' },
+                    { start: 30, end: 40, text: 'Leap and land' },
+                    { start: 40, end: 50, text: 'Serene stillness' },
+                    { start: 50, end: 60, text: 'Stagehand enters' }
+                ];
+                
+                // Duration System for Comparison 3
+                const durationSystem3 = document.getElementById('comparison3-duration-system');
+                const progressFill3 = document.getElementById('comparison3-progress');
+                const promptDisplay3 = document.getElementById('comparison3-prompt');
+                
+                const prompts3 = [
+                    { start: 0, end: 10, text: 'Ethereal setup' },
+                    { start: 10, end: 20, text: 'Raising right hand' },
+                    { start: 20, end: 30, text: 'Breeze stirs' },
+                    { start: 30, end: 40, text: 'Closing eyes' },
+                    { start: 40, end: 50, text: 'Standing still and left arm by her side' },
+                    { start: 50, end: 60, text: 'Bird lands' }
+                ];
+                
+                let trackedVideo1 = null;
+                let trackedVideo2 = null;
+                let trackedVideo3 = null;
+                let currentPromptIndex1 = -1;
+                let currentPromptIndex2 = -1;
+                let currentPromptIndex3 = -1;
+                
+                function updateDurationSystem1(time) {
+                    if (!progressFill1 || !promptDisplay1) return;
+                    
+                    // Update progress bar (0-60 seconds)
+                    const progress = Math.min((time / 60) * 100, 100);
+                    progressFill1.style.width = progress + '%';
+                    
+                    // Update prompt based on time segment
+                    const currentPrompt = prompts1.find(p => time >= p.start && time < p.end) || prompts1[prompts1.length - 1];
+                    if (currentPrompt) {
+                        const promptIndex = prompts1.indexOf(currentPrompt);
+                        // Only update if prompt changed
+                        if (promptIndex !== currentPromptIndex1) {
+                            currentPromptIndex1 = promptIndex;
+                            // Add fade effect
+                            promptDisplay1.style.opacity = '0';
+                            promptDisplay1.style.transform = 'translateY(-10px)';
+                            setTimeout(() => {
+                                promptDisplay1.textContent = currentPrompt.text;
+                                promptDisplay1.style.opacity = '1';
+                                promptDisplay1.style.transform = 'translateY(0)';
+                            }, 150);
+                        }
+                    }
+                }
+                
+                function updateDurationSystem2(time) {
+                    if (!progressFill2 || !promptDisplay2) return;
+                    
+                    // Update progress bar (0-60 seconds)
+                    const progress = Math.min((time / 60) * 100, 100);
+                    progressFill2.style.width = progress + '%';
+                    
+                    // Update prompt based on time segment
+                    const currentPrompt = prompts2.find(p => time >= p.start && time < p.end) || prompts2[prompts2.length - 1];
+                    if (currentPrompt) {
+                        const promptIndex = prompts2.indexOf(currentPrompt);
+                        // Only update if prompt changed
+                        if (promptIndex !== currentPromptIndex2) {
+                            currentPromptIndex2 = promptIndex;
+                            // Add fade effect
+                            promptDisplay2.style.opacity = '0';
+                            promptDisplay2.style.transform = 'translateY(-10px)';
+                            setTimeout(() => {
+                                promptDisplay2.textContent = currentPrompt.text;
+                                promptDisplay2.style.opacity = '1';
+                                promptDisplay2.style.transform = 'translateY(0)';
+                            }, 150);
+                        }
+                    }
+                }
+                
+                function updateDurationSystem3(time) {
+                    if (!progressFill3 || !promptDisplay3) return;
+                    
+                    // Update progress bar (0-60 seconds)
+                    const progress = Math.min((time / 60) * 100, 100);
+                    progressFill3.style.width = progress + '%';
+                    
+                    // Update prompt based on time segment
+                    const currentPrompt = prompts3.find(p => time >= p.start && time < p.end) || prompts3[prompts3.length - 1];
+                    if (currentPrompt) {
+                        const promptIndex = prompts3.indexOf(currentPrompt);
+                        // Only update if prompt changed
+                        if (promptIndex !== currentPromptIndex3) {
+                            currentPromptIndex3 = promptIndex;
+                            // Add fade effect
+                            promptDisplay3.style.opacity = '0';
+                            promptDisplay3.style.transform = 'translateY(-10px)';
+                            setTimeout(() => {
+                                promptDisplay3.textContent = currentPrompt.text;
+                                promptDisplay3.style.opacity = '1';
+                                promptDisplay3.style.transform = 'translateY(0)';
+                            }, 150);
+                        }
+                    }
+                }
+                
+                function startDurationTracking1() {
+                    // Stop any existing tracking
+                    if (trackedVideo1 && trackedVideo1._durationHandler) {
+                        trackedVideo1.removeEventListener('timeupdate', trackedVideo1._durationHandler);
+                    }
+                    
+                    // Find Comparison 1 grid (now has ballet videos, should use system2)
+                    const comparison1Grid = actionControlSection.querySelector('.action-control-grid[data-comparison="Comparison 1"]');
+                    if (!comparison1Grid) return;
+                    
+                    // Get first video in Comparison 1
+                    const videos = comparison1Grid.querySelectorAll('video');
+                    if (videos.length === 0) return;
+                    
+                    trackedVideo1 = videos[0];
+                    
+                    // Add event listener - use system2 for Comparison 1
+                    const handler = () => updateDurationSystem2(trackedVideo1.currentTime);
+                    trackedVideo1.addEventListener('timeupdate', handler);
+                    trackedVideo1._durationHandler = handler;
+                    
+                    // Initial update
+                    updateDurationSystem2(trackedVideo1.currentTime);
+                }
+                
+                function startDurationTracking2() {
+                    // Stop any existing tracking
+                    if (trackedVideo2 && trackedVideo2._durationHandler) {
+                        trackedVideo2.removeEventListener('timeupdate', trackedVideo2._durationHandler);
+                    }
+                    
+                    // Find Comparison 2 grid (now has cat videos, should use system1)
+                    const comparison2Grid = actionControlSection.querySelector('.action-control-grid[data-comparison="Comparison 2"]');
+                    if (!comparison2Grid) return;
+                    
+                    // Get first video in Comparison 2
+                    const videos = comparison2Grid.querySelectorAll('video');
+                    if (videos.length === 0) return;
+                    
+                    trackedVideo2 = videos[0];
+                    
+                    // Add event listener - use system1 for Comparison 2
+                    const handler = () => updateDurationSystem1(trackedVideo2.currentTime);
+                    trackedVideo2.addEventListener('timeupdate', handler);
+                    trackedVideo2._durationHandler = handler;
+                    
+                    // Initial update
+                    updateDurationSystem1(trackedVideo2.currentTime);
+                }
+                
+                function startDurationTracking3() {
+                    // Stop any existing tracking
+                    if (trackedVideo3 && trackedVideo3._durationHandler) {
+                        trackedVideo3.removeEventListener('timeupdate', trackedVideo3._durationHandler);
+                    }
+                    
+                    // Find Comparison 3 grid
+                    const comparison3Grid = actionControlSection.querySelector('.action-control-grid[data-comparison="Comparison 3"]');
+                    if (!comparison3Grid) return;
+                    
+                    // Get first video in Comparison 3
+                    const videos = comparison3Grid.querySelectorAll('video');
+                    if (videos.length === 0) return;
+                    
+                    trackedVideo3 = videos[0];
+                    
+                    // Add event listener - use system3 for Comparison 3
+                    const handler = () => updateDurationSystem3(trackedVideo3.currentTime);
+                    trackedVideo3.addEventListener('timeupdate', handler);
+                    trackedVideo3._durationHandler = handler;
+                    
+                    // Initial update
+                    updateDurationSystem3(trackedVideo3.currentTime);
+                }
+                
+                function toggleDurationSystem(comparisonIndex) {
+                    // Hide all systems first
+                    if (durationSystem1) durationSystem1.style.display = 'none';
+                    if (durationSystem2) durationSystem2.style.display = 'none';
+                    if (durationSystem3) durationSystem3.style.display = 'none';
+                    
+                    // Stop all tracking
+                    if (trackedVideo1 && trackedVideo1._durationHandler) {
+                        trackedVideo1.removeEventListener('timeupdate', trackedVideo1._durationHandler);
+                        trackedVideo1._durationHandler = null;
+                    }
+                    if (trackedVideo2 && trackedVideo2._durationHandler) {
+                        trackedVideo2.removeEventListener('timeupdate', trackedVideo2._durationHandler);
+                        trackedVideo2._durationHandler = null;
+                    }
+                    if (trackedVideo3 && trackedVideo3._durationHandler) {
+                        trackedVideo3.removeEventListener('timeupdate', trackedVideo3._durationHandler);
+                        trackedVideo3._durationHandler = null;
+                    }
+                    
+                    // Show and start tracking for the active comparison
+                    // Index 0 (Comparison 1 - ballet) shows system2 (Solo rehearsal prompts)
+                    // Index 1 (Comparison 2 - cat) shows system1 (Typing intently prompts)
+                    // Index 2 (Comparison 3 - model) shows system3 (Ethereal setup prompts)
+                    if (comparisonIndex === 0) {
+                        if (durationSystem2) {
+                            durationSystem2.style.display = 'block';
+                            setTimeout(() => startDurationTracking1(), 200);
+                        }
+                    } else if (comparisonIndex === 1) {
+                        if (durationSystem1) {
+                            durationSystem1.style.display = 'block';
+                            setTimeout(() => startDurationTracking2(), 200);
+                        }
+                    } else if (comparisonIndex === 2) {
+                        if (durationSystem3) {
+                            durationSystem3.style.display = 'block';
+                            setTimeout(() => startDurationTracking3(), 200);
+                        }
+                    }
+                }
+                
+                // Create indicators
+                const indicators = [];
+                if (indicatorsContainer) {
+                    grids.forEach((grid, index) => {
+                        const indicator = document.createElement('button');
+                        indicator.className = 'indicator';
+                        if (index === 0) indicator.classList.add('active');
+                        indicator.addEventListener('click', () => actionControlShowGrid(index));
+                        indicatorsContainer.appendChild(indicator);
+                        indicators.push(indicator);
+                    });
+                }
+                
+                function actionControlShowGrid(index) {
+                    grids.forEach((grid, gridIndex) => {
+                        grid.classList.remove('active');
+                        actionControlAutoArmed[gridIndex] = false;
+                    });
+                    indicators.forEach(indicator => indicator.classList.remove('active'));
+                    
+                    grids[index].classList.add('active');
+                    indicators[index].classList.add('active');
+                    actionControlCurrentIndex = index;
+                    actionControlAutoArmed[index] = true;
+                    resetGridVideos(grids[index]);
+                    
+                    // Update duration title
+                    if (durationTitle && grids[index].dataset.comparison) {
+                        durationTitle.textContent = grids[index].dataset.comparison;
+                    }
+                    
+                    // Toggle duration system for Comparison 1 or 2
+                    toggleDurationSystem(index);
+                }
+                
+                grids.forEach((grid, index) => {
+                    const referenceVideo = grid.querySelector('video');
+                    if (!referenceVideo) return;
+                    referenceVideo.addEventListener('ended', () => {
+                        if (!grid.classList.contains('active')) return;
+                        if (!actionControlAutoArmed[index]) return;
+                        actionControlAutoArmed[index] = false;
+                        const nextIndex = (index + 1) % grids.length;
+                        actionControlShowGrid(nextIndex);
+                    });
+                });
+                
+                prevButton.addEventListener('click', () => {
+                    const newIndex = (actionControlCurrentIndex - 1 + grids.length) % grids.length;
+                    actionControlShowGrid(newIndex);
+                });
+                
+                nextButton.addEventListener('click', () => {
+                    const newIndex = (actionControlCurrentIndex + 1) % grids.length;
+                    actionControlShowGrid(newIndex);
+                });
+                
+                actionControlShowGrid(actionControlCurrentIndex);
+            }
+        });
+        
+        // Video control functionality for qualitative results, ablation sections, and action control comparison
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all control buttons (restart, play, stop)
+            const controlButtons = document.querySelectorAll('.control-btn');
+            
+            controlButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    const sectionType = this.getAttribute('data-section');
+                    
+                    // Handle Motivations section
+                    if (sectionType === 'motivations') {
+                        const motivationsSection = Array.from(document.querySelectorAll('section')).find(section => {
+                            const h2 = section.querySelector('h2');
+                            return h2 && h2.textContent.includes('Motivations');
+                        });
+                        
+                        if (motivationsSection) {
+                            // Get all videos in the section
+                            const videos = motivationsSection.querySelectorAll('video');
+                            
+                            videos.forEach(video => {
+                                if (action === 'restart') {
+                                    video.currentTime = 0;
+                                    video.play();
+                                } else if (action === 'play') {
+                                    video.play();
+                                } else if (action === 'stop') {
+                                    video.pause();
+                                }
+                            });
+                        }
+                    }
+                    // Handle Action Control Comparison section specially
+                    else if (sectionType === 'action-control-comparison') {
+                        const actionControlSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                            const h2 = section.querySelector('h2');
+                            return h2 && h2.textContent.includes('Action Control Comparison');
+                        });
+                        
+                        if (actionControlSection) {
+                            // Get all videos in the section
+                            const videos = actionControlSection.querySelectorAll('video');
+                            
+                            // Get duration system references
+                            const durationSystem1 = document.getElementById('comparison1-duration-system');
+                            const durationSystem2 = document.getElementById('comparison2-duration-system');
+                            const durationSystem3 = document.getElementById('comparison3-duration-system');
+                            const progressFill1 = document.getElementById('comparison1-progress');
+                            const progressFill2 = document.getElementById('comparison2-progress');
+                            const progressFill3 = document.getElementById('comparison3-progress');
+                            const promptDisplay1 = document.getElementById('comparison1-prompt');
+                            const promptDisplay2 = document.getElementById('comparison2-prompt');
+                            const promptDisplay3 = document.getElementById('comparison3-prompt');
+                            
+                            // Prompt arrays
+                            const prompts1 = [
+                                { start: 0, end: 10, text: 'Typing intently' },
+                                { start: 10, end: 20, text: 'Rubbing arm' },
+                                { start: 20, end: 30, text: 'Resuming work' },
+                                { start: 30, end: 40, text: 'Gentle murmur' },
+                                { start: 40, end: 50, text: 'Chin scratch' },
+                                { start: 50, end: 60, text: 'Head pat' }
+                            ];
+                            const prompts2 = [
+                                { start: 0, end: 10, text: 'Solo rehearsal' },
+                                { start: 10, end: 20, text: 'Tracing line' },
+                                { start: 20, end: 30, text: 'Pirouette' },
+                                { start: 30, end: 40, text: 'Leap and land' },
+                                { start: 40, end: 50, text: 'Serene stillness' },
+                                { start: 50, end: 60, text: 'Stagehand enters' }
+                            ];
+                            const prompts3 = [
+                                { start: 0, end: 10, text: 'Ethereal setup' },
+                                { start: 10, end: 20, text: 'Raising right hand' },
+                                { start: 20, end: 30, text: 'Breeze stirs' },
+                                { start: 30, end: 40, text: 'Closing eyes' },
+                                { start: 40, end: 50, text: 'Standing still and left arm by her side' },
+                                { start: 50, end: 60, text: 'Bird lands' }
+                            ];
+                            
+                            // Track current prompt indices for each system
+                            let currentPromptIndex1 = -1;
+                            let currentPromptIndex2 = -1;
+                            let currentPromptIndex3 = -1;
+                            
+                            // Helper function to update duration system with prompts
+                            function updateSystemWithPrompt(time, systemNum, forceUpdate = false) {
+                                let progressFill, promptDisplay, prompts, currentPromptIndex;
+                                if (systemNum === 1) {
+                                    progressFill = progressFill1;
+                                    promptDisplay = promptDisplay1;
+                                    prompts = prompts1;
+                                    currentPromptIndex = currentPromptIndex1;
+                                } else if (systemNum === 2) {
+                                    progressFill = progressFill2;
+                                    promptDisplay = promptDisplay2;
+                                    prompts = prompts2;
+                                    currentPromptIndex = currentPromptIndex2;
+                                } else if (systemNum === 3) {
+                                    progressFill = progressFill3;
+                                    promptDisplay = promptDisplay3;
+                                    prompts = prompts3;
+                                    currentPromptIndex = currentPromptIndex3;
+                                }
+                                
+                                if (!progressFill || !promptDisplay) return;
+                                
+                                // Update progress bar
+                                const progress = Math.min((time / 60) * 100, 100);
+                                progressFill.style.width = progress + '%';
+                                
+                                // Update prompt based on time segment
+                                const currentPrompt = prompts.find(p => time >= p.start && time < p.end) || prompts[prompts.length - 1];
+                                if (currentPrompt) {
+                                    const promptIndex = prompts.indexOf(currentPrompt);
+                                    // Only update if prompt changed or forced
+                                    if (forceUpdate || promptIndex !== currentPromptIndex) {
+                                        // Update the tracked index
+                                        if (systemNum === 1) {
+                                            currentPromptIndex1 = promptIndex;
+                                        } else if (systemNum === 2) {
+                                            currentPromptIndex2 = promptIndex;
+                                        } else if (systemNum === 3) {
+                                            currentPromptIndex3 = promptIndex;
+                                        }
+                                        
+                                        // Update prompt with fade effect
+                                        promptDisplay.style.opacity = '0';
+                                        promptDisplay.style.transform = 'translateY(-10px)';
+                                        setTimeout(() => {
+                                            promptDisplay.textContent = currentPrompt.text;
+                                            promptDisplay.style.opacity = '1';
+                                            promptDisplay.style.transform = 'translateY(0)';
+                                        }, 150);
+                                    }
+                                }
+                            }
+                            
+                            // Get tracked videos
+                            const comparison1Grid = actionControlSection.querySelector('.action-control-grid[data-comparison="Comparison 1"]');
+                            const comparison2Grid = actionControlSection.querySelector('.action-control-grid[data-comparison="Comparison 2"]');
+                            const comparison3Grid = actionControlSection.querySelector('.action-control-grid[data-comparison="Comparison 3"]');
+                            const trackedVideo1 = comparison1Grid ? comparison1Grid.querySelector('video') : null;
+                            const trackedVideo2 = comparison2Grid ? comparison2Grid.querySelector('video') : null;
+                            const trackedVideo3 = comparison3Grid ? comparison3Grid.querySelector('video') : null;
+                            
+                            if (action === 'restart') {
+                                // Reset all videos
+                                videos.forEach(video => {
+                                    video.currentTime = 0;
+                                    video.play();
+                                });
+                                
+                                // Reset prompt indices
+                                currentPromptIndex1 = -1;
+                                currentPromptIndex2 = -1;
+                                currentPromptIndex3 = -1;
+                                
+                                // Reset all duration bars and prompts to 0 (force update)
+                                updateSystemWithPrompt(0, 1, true);
+                                updateSystemWithPrompt(0, 2, true);
+                                updateSystemWithPrompt(0, 3, true);
+                                
+                                // Restart duration tracking
+                                setTimeout(() => {
+                                    const activeGrid = actionControlSection.querySelector('.action-control-grid.active');
+                                    if (activeGrid) {
+                                        const comparison = activeGrid.getAttribute('data-comparison');
+                                        if (comparison === 'Comparison 1') {
+                                            // Use system2 for Comparison 1
+                                            if (trackedVideo1 && durationSystem2 && durationSystem2.style.display !== 'none') {
+                                                const handler = () => {
+                                                    updateSystemWithPrompt(trackedVideo1.currentTime, 2);
+                                                };
+                                                if (trackedVideo1._durationHandler) {
+                                                    trackedVideo1.removeEventListener('timeupdate', trackedVideo1._durationHandler);
+                                                }
+                                                trackedVideo1.addEventListener('timeupdate', handler);
+                                                trackedVideo1._durationHandler = handler;
+                                            }
+                                        } else if (comparison === 'Comparison 2') {
+                                            // Use system1 for Comparison 2
+                                            if (trackedVideo2 && durationSystem1 && durationSystem1.style.display !== 'none') {
+                                                const handler = () => {
+                                                    updateSystemWithPrompt(trackedVideo2.currentTime, 1);
+                                                };
+                                                if (trackedVideo2._durationHandler) {
+                                                    trackedVideo2.removeEventListener('timeupdate', trackedVideo2._durationHandler);
+                                                }
+                                                trackedVideo2.addEventListener('timeupdate', handler);
+                                                trackedVideo2._durationHandler = handler;
+                                            }
+                                        } else if (comparison === 'Comparison 3') {
+                                            // Use system3 for Comparison 3
+                                            if (trackedVideo3 && durationSystem3 && durationSystem3.style.display !== 'none') {
+                                                const handler = () => {
+                                                    updateSystemWithPrompt(trackedVideo3.currentTime, 3);
+                                                };
+                                                if (trackedVideo3._durationHandler) {
+                                                    trackedVideo3.removeEventListener('timeupdate', trackedVideo3._durationHandler);
+                                                }
+                                                trackedVideo3.addEventListener('timeupdate', handler);
+                                                trackedVideo3._durationHandler = handler;
+                                            }
+                                        }
+                                    }
+                                }, 100);
+                                
+                            } else if (action === 'play') {
+                                // Play all videos
+                                videos.forEach(video => {
+                                    video.play();
+                                });
+                                
+                                // Restart duration tracking with prompt updates
+                                setTimeout(() => {
+                                    const activeGrid = actionControlSection.querySelector('.action-control-grid.active');
+                                    if (activeGrid) {
+                                        const comparison = activeGrid.getAttribute('data-comparison');
+                                        if (comparison === 'Comparison 1' && trackedVideo1 && durationSystem2 && durationSystem2.style.display !== 'none') {
+                                            const handler = () => {
+                                                updateSystemWithPrompt(trackedVideo1.currentTime, 2);
+                                            };
+                                            if (trackedVideo1._durationHandler) {
+                                                trackedVideo1.removeEventListener('timeupdate', trackedVideo1._durationHandler);
+                                            }
+                                            trackedVideo1.addEventListener('timeupdate', handler);
+                                            trackedVideo1._durationHandler = handler;
+                                            // Initial update
+                                            updateSystemWithPrompt(trackedVideo1.currentTime, 2);
+                                        } else if (comparison === 'Comparison 2' && trackedVideo2 && durationSystem1 && durationSystem1.style.display !== 'none') {
+                                            const handler = () => {
+                                                updateSystemWithPrompt(trackedVideo2.currentTime, 1);
+                                            };
+                                            if (trackedVideo2._durationHandler) {
+                                                trackedVideo2.removeEventListener('timeupdate', trackedVideo2._durationHandler);
+                                            }
+                                            trackedVideo2.addEventListener('timeupdate', handler);
+                                            trackedVideo2._durationHandler = handler;
+                                            // Initial update
+                                            updateSystemWithPrompt(trackedVideo2.currentTime, 1);
+                                        } else if (comparison === 'Comparison 3' && trackedVideo3 && durationSystem3 && durationSystem3.style.display !== 'none') {
+                                            const handler = () => {
+                                                updateSystemWithPrompt(trackedVideo3.currentTime, 3);
+                                            };
+                                            if (trackedVideo3._durationHandler) {
+                                                trackedVideo3.removeEventListener('timeupdate', trackedVideo3._durationHandler);
+                                            }
+                                            trackedVideo3.addEventListener('timeupdate', handler);
+                                            trackedVideo3._durationHandler = handler;
+                                            // Initial update
+                                            updateSystemWithPrompt(trackedVideo3.currentTime, 3);
+                                        }
+                                    }
+                                }, 100);
+                                
+                            } else if (action === 'stop') {
+                                // Stop all videos
+                                videos.forEach(video => {
+                                    video.pause();
+                                });
+                                
+                                // Stop duration tracking by removing event listeners
+                                if (trackedVideo1 && trackedVideo1._durationHandler) {
+                                    trackedVideo1.removeEventListener('timeupdate', trackedVideo1._durationHandler);
+                                    trackedVideo1._durationHandler = null;
+                                }
+                                if (trackedVideo2 && trackedVideo2._durationHandler) {
+                                    trackedVideo2.removeEventListener('timeupdate', trackedVideo2._durationHandler);
+                                    trackedVideo2._durationHandler = null;
+                                }
+                                if (trackedVideo3 && trackedVideo3._durationHandler) {
+                                    trackedVideo3.removeEventListener('timeupdate', trackedVideo3._durationHandler);
+                                    trackedVideo3._durationHandler = null;
+                                }
+                            }
+                        }
+                    }
+                    // Handle Qualitative Comparison section
+                    else if (sectionType === 'qualitative-comparison') {
+                        const qualitativeSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                            const h2 = section.querySelector('h2');
+                            return h2 && h2.textContent.includes('Qualitative Comparison');
+                        });
+                        
+                        if (qualitativeSection) {
+                            const videos = qualitativeSection.querySelectorAll('video');
+                            
+                            videos.forEach(video => {
+                                if (action === 'restart') {
+                                    video.currentTime = 0;
+                                    video.play();
+                                } else if (action === 'play') {
+                                    video.play();
+                                } else if (action === 'stop') {
+                                    video.pause();
+                                }
+                            });
+                        }
+                    } else {
+                        // Handle regular subsections (qualitative results and ablations)
+                        const subsection = this.closest('.qualitative-subsection, .subsection, .ablation-subsection');
+                        if (subsection) {
+                            // Get all videos in this subsection
+                            const videos = subsection.querySelectorAll('video');
+                            
+                            videos.forEach(video => {
+                                if (action === 'restart') {
+                                    video.currentTime = 0;
+                                    video.play();
+                                } else if (action === 'play') {
+                                    video.play();
+                                } else if (action === 'stop') {
+                                    video.pause();
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Get all speed control buttons
+            const speedButtons = document.querySelectorAll('.speed-btn');
+            
+            speedButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const speed = parseFloat(this.getAttribute('data-speed'));
+                    const sectionType = this.getAttribute('data-section');
+                    
+                    // Handle Motivations section
+                    if (sectionType === 'motivations') {
+                        const motivationsSection = Array.from(document.querySelectorAll('section')).find(section => {
+                            const h2 = section.querySelector('h2');
+                            return h2 && h2.textContent.includes('Motivations');
+                        });
+                        
+                        if (motivationsSection) {
+                            // Remove active class from all speed buttons in this section
+                            motivationsSection.querySelectorAll('.speed-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                            });
+                            // Add active class to clicked button
+                            this.classList.add('active');
+                            
+                            // Get all videos in the section
+                            const videos = motivationsSection.querySelectorAll('video');
+                            videos.forEach(video => {
+                                video.playbackRate = speed;
+                            });
+                        }
+                    }
+                    // Handle Action Control Comparison section
+                    else if (sectionType === 'action-control-comparison') {
+                        const actionControlSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                            const h2 = section.querySelector('h2');
+                            return h2 && h2.textContent.includes('Action Control Comparison');
+                        });
+                        
+                        if (actionControlSection) {
+                            // Remove active class from all speed buttons in this section
+                            actionControlSection.querySelectorAll('.speed-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                            });
+                            // Add active class to clicked button
+                            this.classList.add('active');
+                            
+                            // Get all videos in the section
+                            const videos = actionControlSection.querySelectorAll('video');
+                            videos.forEach(video => {
+                                video.playbackRate = speed;
+                            });
+                        }
+                    }
+                    // Handle Qualitative Comparison section
+                    else if (sectionType === 'qualitative-comparison') {
+                        const qualitativeSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                            const h2 = section.querySelector('h2');
+                            return h2 && h2.textContent.includes('Qualitative Comparison');
+                        });
+                        
+                        if (qualitativeSection) {
+                            qualitativeSection.querySelectorAll('.speed-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                            });
+                            this.classList.add('active');
+                            
+                            const videos = qualitativeSection.querySelectorAll('video');
+                            videos.forEach(video => {
+                                video.playbackRate = speed;
+                            });
+                        }
+                    } else {
+                        // Handle regular subsections (qualitative-subsection, subsection, or ablation-subsection)
+                        const subsection = this.closest('.qualitative-subsection, .subsection, .ablation-subsection');
+                        if (subsection) {
+                            // Remove active class from all buttons in this subsection
+                            subsection.querySelectorAll('.speed-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                            });
+                            // Add active class to clicked button
+                            this.classList.add('active');
+                            
+                            // Get all videos in this subsection
+                            const videos = subsection.querySelectorAll('video');
+                            videos.forEach(video => {
+                                video.playbackRate = speed;
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Set default 2x speed on page load
+            document.querySelectorAll('.qualitative-subsection video, .subsection video, .ablation-subsection video').forEach(video => {
+                video.playbackRate = 2;
+            });
+            
+            // Set default 2x speed for Action Control Comparison section
+            const actionControlSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                const h2 = section.querySelector('h2');
+                return h2 && h2.textContent.includes('Action Control Comparison');
+            });
+            if (actionControlSection) {
+                actionControlSection.querySelectorAll('video').forEach(video => {
+                    video.playbackRate = 2;
+                });
+            }
+            
+            // Set default 2x speed for Qualitative Comparison section
+            const qualitativeComparisonSection = Array.from(document.querySelectorAll('section.comparison-section')).find(section => {
+                const h2 = section.querySelector('h2');
+                return h2 && h2.textContent.includes('Qualitative Comparison');
+            });
+            if (qualitativeComparisonSection) {
+                qualitativeComparisonSection.querySelectorAll('video').forEach(video => {
+                    video.playbackRate = 2;
+                });
+            }
+            
+            // Set default 2x speed for Motivations section
+            const motivationsSection = Array.from(document.querySelectorAll('section')).find(section => {
+                const h2 = section.querySelector('h2');
+                return h2 && h2.textContent.includes('Motivations');
+            });
+            if (motivationsSection) {
+                motivationsSection.querySelectorAll('video').forEach(video => {
+                    video.playbackRate = 2;
+                });
+            }
+            
+            // Activate 2x buttons by default
+            document.querySelectorAll('.speed-btn[data-speed="2"]').forEach(btn => {
+                btn.classList.add('active');
+            });
+        });
+    </script>
+    <footer>
+        <div class="divider" style="margin: 0 auto 0.5rem; width: 80px;"></div>
+        <p>∞-RoPE: Action-Controllable Infinite Video Generation Emerges From Autoregressive Self-Rollout</p>
+    </footer>
+</body>
+</html>
