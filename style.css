@@ -72,6 +72,18 @@ h1 {
     letter-spacing: 1px;
 }
 
+.subtitle a {
+    color: var(--white);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.subtitle a:hover {
+    color: var(--accent-color);
+    border-bottom: 1px solid var(--accent-color);
+}
+
 .button-container {
     display: flex;
     gap: 1rem;
