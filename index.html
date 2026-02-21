@@ -30,6 +30,38 @@
                 font-size: 1.4rem;
             }
         }
+
+        /* Title wrapper for badge positioning */
+        .title-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Venue badge styling - inline next to "Self-Rollout" */
+        .venue-badge {
+            display: inline-block;
+            margin-left: 0.5em;
+            vertical-align: middle;
+            transform: rotate(8deg);
+            background: linear-gradient(145deg, #f6d365 0%, #fda085 100%);
+            color: #5c3d1e;
+            font-family: 'Roboto Slab', serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            padding: 8px 18px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .venue-badge {
+                display: block;
+                margin: 12px auto 0;
+                transform: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -55,7 +87,9 @@
     <div class="hero">
     <div class="container">
             <header>
-                <h1><span class="infinity">∞</span>-RoPE: Action-Controllable Infinite Video Generation Emerges From Autoregressive Self-Rollout</h1>
+                <div class="title-wrapper">
+                    <h1><span class="infinity">∞</span>-RoPE: Action-Controllable Infinite Video Generation Emerges From Autoregressive Self-Rollout <span class="venue-badge">CVPR 2026</span></h1>
+                </div>
                 <div class="divider"></div>
                 <p class="subtitle">
                     <a href="https://yesiltepe-hidir.github.io/" target="_blank">Hidir Yesiltepe</a><sup>1</sup>, <a href="https://tmeral.com/" target="_blank">Tuna Han Salih Meral</a><sup>1</sup>, <a href="https://kaanakan.github.io/" target="_blank">Adil Kaan Akan</a><sup>2</sup>, <a href="https://kaanoktay.github.io/" target="_blank">Kaan Oktay</a><sup>2</sup>, <a href="https://pinguar.org/" target="_blank">Pinar Yanardag</a><sup>1</sup><br>
